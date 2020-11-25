@@ -1,9 +1,10 @@
 package com.arkea.asyncapi.v2.models.channels;
 
-import java.util.Map;
-
+import com.arkea.asyncapi.v2.models.Referenceable;
 import com.arkea.asyncapi.v2.models.operations.Operation;
 import com.arkea.asyncapi.v2.models.parameters.Parameter;
+
+import java.util.Map;
 
 /**
  * Server
@@ -11,7 +12,7 @@ import com.arkea.asyncapi.v2.models.parameters.Parameter;
  * @see "https://github.com/asyncapi/asyncapi/blob/master/versions/2.0.0/asyncapi.md#channelItemObject"
  */
 
-public class Channel {
+public class Channel implements Referenceable {
 
     /**
      * An optional description of this channel item. CommonMark syntax can be used
@@ -160,6 +161,10 @@ public class Channel {
             $ref = "#/components/channels/channel" + $ref;
         }
         this.$ref = $ref;
+    }
+
+    public String get$ref() {
+        return $ref;
     }
 
     /**

@@ -1,18 +1,19 @@
 package com.arkea.asyncapi.v2.models.messages;
 
-import java.util.List;
-import java.util.Map;
-
 import com.arkea.asyncapi.v2.models.ExternalDocumentation;
+import com.arkea.asyncapi.v2.models.Referenceable;
 import com.arkea.asyncapi.v2.models.media.Schema;
 import com.arkea.asyncapi.v2.models.tags.Tag;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  *
  * @see "https://github.com/asyncapi/asyncapi/blob/master/versions/2.0.0/asyncapi.md#messageObject"
  *
  */
-public class Message {
+public class Message implements Referenceable {
 
     /** Definition of the application headers. Schema MUST be of type "object". It MUST NOT define the protocol headers. */
     private Schema<?> headers = null;

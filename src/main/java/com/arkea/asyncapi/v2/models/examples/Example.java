@@ -1,10 +1,12 @@
 package com.arkea.asyncapi.v2.models.examples;
 
+import com.arkea.asyncapi.v2.models.Referenceable;
+
 /**
  * Example
  */
 
-public class Example {
+public class Example implements Referenceable {
 
     private String summary = null;
 

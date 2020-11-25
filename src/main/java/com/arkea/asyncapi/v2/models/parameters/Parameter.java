@@ -1,8 +1,9 @@
 package com.arkea.asyncapi.v2.models.parameters;
 
-import java.util.Map;
-
+import com.arkea.asyncapi.v2.models.Referenceable;
 import com.arkea.asyncapi.v2.models.media.Schema;
+
+import java.util.Map;
 
 /**
  * Parameter
@@ -10,7 +11,7 @@ import com.arkea.asyncapi.v2.models.media.Schema;
  * @see "https://github.com/asyncapi/asyncapi/blob/master/versions/2.0.0/asyncapi.md#parameterObject"
  */
 
-public class Parameter {
+public class Parameter implements Referenceable {
 
     private String description = null;
 

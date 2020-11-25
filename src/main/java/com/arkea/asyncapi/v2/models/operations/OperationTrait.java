@@ -1,17 +1,18 @@
 package com.arkea.asyncapi.v2.models.operations;
 
+import com.arkea.asyncapi.v2.models.ExternalDocumentation;
+import com.arkea.asyncapi.v2.models.Referenceable;
+import com.arkea.asyncapi.v2.models.tags.Tag;
+
 import java.util.List;
 import java.util.Map;
-
-import com.arkea.asyncapi.v2.models.ExternalDocumentation;
-import com.arkea.asyncapi.v2.models.tags.Tag;
 
 /**
  *
  * @see "https://github.com/asyncapi/asyncapi/blob/master/versions/2.0.0/asyncapi.md#operation-trait-object"
  *
  */
-public class OperationTrait {
+public class OperationTrait implements Referenceable {
 
     private String operationId = null; // string Unique string used to identify the operation. The id MUST be unique
                                        // among all operations described in the API. The operationId value is

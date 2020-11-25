@@ -1,5 +1,6 @@
 package com.arkea.asyncapi.v2.models.security;
 
+import com.arkea.asyncapi.v2.models.Referenceable;
 import org.apache.commons.lang3.EnumUtils;
 
 /**
@@ -8,7 +9,7 @@ import org.apache.commons.lang3.EnumUtils;
  * @see "https://github.com/asyncapi/asyncapi/blob/master/versions/2.0.0/asyncapi.md#securitySchemeObject"
  */
 
-public class SecurityScheme {
+public class SecurityScheme implements Referenceable {
 
     /**
      * Gets or Sets in

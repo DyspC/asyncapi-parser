@@ -1,9 +1,11 @@
 package com.arkea.asyncapi.v2.models.messages;
 
+import com.arkea.asyncapi.v2.models.Referenceable;
+
 /**
  * @see "https://github.com/asyncapi/asyncapi/blob/master/versions/2.0.0/asyncapi.md#correlationIdObject"
  */
-public class CorrelationID {
+public class CorrelationID implements Referenceable {
 
     /** An optional description of the identifier. CommonMark syntax can be used for rich text representation. */
     private String description = null;

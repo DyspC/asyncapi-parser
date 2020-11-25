@@ -1,5 +1,8 @@
 package com.arkea.asyncapi.v2.models.media;
 
+import com.arkea.asyncapi.v2.models.ExternalDocumentation;
+import com.arkea.asyncapi.v2.models.Referenceable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,15 +11,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import com.arkea.asyncapi.v2.models.ExternalDocumentation;
-
 /**
  * Schema
  *
  * @see "https://github.com/asyncapi/asyncapi/blob/master/versions/2.0.0/asyncapi.md#schemaObject"
  */
 
-public class Schema<T> {
+public class Schema<T> implements Referenceable {
 
     /** //The default value represents what would be assumed by the consumer of the input as the value of the schema if one is not provided.
      *  Unlike JSON Schema, the value MUST conform to the defined type for the Schema Object defined at the same level.
