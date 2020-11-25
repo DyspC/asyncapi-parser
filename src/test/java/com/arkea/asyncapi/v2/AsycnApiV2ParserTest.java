@@ -1,6 +1,7 @@
 package com.arkea.asyncapi.v2;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -160,5 +161,37 @@ public class AsycnApiV2ParserTest {
 		AsyncAPI asyncAPI = parseResult.getAsyncAPI();
 		assertNotNull(asyncAPI);
 		assertTrue(parseResult.getMessages().size() == 0);
+	}
+	@Test
+	public void testReferencesAreResolvedToSame() {
+		AsyncAPIV2Parser asyncAPIV2Parser = new AsyncAPIV2Parser();
+		ParseOptions options = new ParseOptions();
+
+		InputStream myStream = null;
+		String myString = null;
+		try {
+			ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+			myStream = classloader.getResourceAsStream("asyncapi.yaml");
+			myString = IOUtils.toString(myStream, Charset.defaultCharset()).trim();
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}finally {
+			if(myStream != null) {
+				IOUtils.closeQuietly(myStream);
+			}
+		}
+
+		options.setResolve(true);
+		AsyncParseResult parseResult = asyncAPIV2Parser.readContents(myString);
+		AsyncAPI asyncAPI = parseResult.getAsyncAPI();
+		assertNotNull(asyncAPI);
+		assertTrue("Error messages should be empty", parseResult.getMessages().isEmpty());
+		assertNotNull(asyncAPI.getComponents());
+		assertNotNull("Expected a lightMeasuredPayload schema to be parsed", asyncAPI.getComponents().getSchemas().get("lightMeasuredPayload"));
+		assertNotNull("Expected a lightMeasured message to be parsed", asyncAPI.getComponents().getMessages().get("lightMeasured"));
+		assertSame("The payload reference from lightMeasured was not resolved",
+				asyncAPI.getComponents().getSchemas().get("lightMeasuredPayload"),
+				asyncAPI.getComponents().getMessages().get("lightMeasured").getPayload());
 	}
 }
