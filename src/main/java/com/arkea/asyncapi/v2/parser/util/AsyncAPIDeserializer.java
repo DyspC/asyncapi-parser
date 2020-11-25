@@ -19,11 +19,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
+import com.arkea.asyncapi.v2.models.Referenceable;
 import com.arkea.asyncapi.v2.models.media.StringSchema;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -262,6 +265,13 @@ public class AsyncAPIDeserializer {
                     result.extra(location, key, node.get(key));
                 }
             }
+
+
+            result.referenceables.entrySet().forEach(locationReferenceableEntry -> {
+                String reference = locationReferenceableEntry.getKey().toReference();
+                Optional.ofNullable(result.referenceSetters.get(reference))
+                        .ifPresent(referenceableConsumer -> referenceableConsumer.accept(locationReferenceableEntry.getValue()));
+            });
 
         } else {
             result.invalidType(location, "asyncapi", "object", node);
@@ -697,9 +707,10 @@ public class AsyncAPIDeserializer {
 
             if (entry.getValue().getNodeType().equals(JsonNodeType.OBJECT)) {
                 final Channel channelObj = getChannel((ObjectNode) entry.getValue(), String.format("%s.%s", location, entry.getKey()), result);
-                if (channelObj != null) {
-                    channels.put(entry.getKey(), channelObj);
-                }
+                Optional.ofNullable(channelObj)
+                        .map(channel -> channels.put(entry.getKey(), channel))
+                        .map(Channel::get$ref)
+                        .ifPresent($ref -> result.registerReference($ref, referenceable -> channels.put(entry.getKey(), (Channel) referenceable)));
             }
         }
         return channels;
@@ -753,8 +764,9 @@ public class AsyncAPIDeserializer {
             }
         }
 
-        return channel;
+        result.registerReferenceeable(location, channel);
 
+        return channel;
     }
 
     // OK
@@ -1129,12 +1141,13 @@ public class AsyncAPIDeserializer {
                 final ObjectNode parameterObj = (ObjectNode) parameterValue;
                 if (parameterObj != null) {
                     parameter = getParameter(parameterObj, String.format("%s.%s", location, parameterName), result);
-                    if (parameter != null) {
+                    Optional.ofNullable(parameter)
+                            .map(parameter1 -> parameters.put(parameterName, parameter1))
+                            .map(Parameter::get$ref)
+                            .ifPresent($ref -> result.registerReference($ref, referenceable -> parameters.put(parameterName, (Parameter) referenceable)));
                         // if(PATH_PARAMETER.equalsIgnoreCase(parameter.getIn()) && Boolean.FALSE.equals(parameter.getRequired())){
                         // result.warning(location, "For path parameter "+ parameterName + " the required value should be true");
                         // }
-                        parameters.put(parameterName, parameter);
-                    }
                 }
             }
 
@@ -1152,6 +1165,10 @@ public class AsyncAPIDeserializer {
                 final Parameter parameter = getParameter((ObjectNode) item, location, result);
                 if (parameter != null) {
                     parameters.add(parameter);
+                    Optional.ofNullable(parameter.get$ref())
+                            .ifPresent($ref -> result.registerReference($ref, referenceable ->
+                                    parameters.replaceAll(parameter1 -> $ref.equals(parameter1.get$ref()) ? (Parameter) referenceable : parameter1)
+                            ));
                 }
             }
         }
@@ -1244,6 +1261,9 @@ public class AsyncAPIDeserializer {
                 result.extra(location, key, node.get(key));
             }
         }
+
+        result.registerReferenceeable(location, parameter);
+
         return parameter;
     }
 
@@ -1303,9 +1323,10 @@ public class AsyncAPIDeserializer {
             } else {
                 final ObjectNode securityScheme = (ObjectNode) securitySchemeValue;
                 final SecurityScheme securitySchemeObj = getSecurityScheme(securityScheme, String.format("%s.%s", location, securitySchemeName), result);
-                if (securityScheme != null) {
-                    securitySchemes.put(securitySchemeName, securitySchemeObj);
-                }
+                Optional.ofNullable(securitySchemeObj)
+                        .map(x1 -> securitySchemes.put(securitySchemeName, x1))
+                        .map(SecurityScheme::get$ref)
+                        .ifPresent($ref -> result.registerReference($ref, referenceable -> securitySchemes.put(securitySchemeName, (SecurityScheme) referenceable)));
             }
         }
         return securitySchemes;
@@ -1407,6 +1428,8 @@ public class AsyncAPIDeserializer {
             }
         }
 
+        result.registerReferenceeable(location, securityScheme);
+
         return securityScheme;
     }
 
@@ -1431,9 +1454,10 @@ public class AsyncAPIDeserializer {
             } else {
                 final ObjectNode message = (ObjectNode) messageValue;
                 final Message messageObj = getMessage(message, String.format("%s.%s", location, messageName), result);
-                if (messageObj != null) {
-                    messages.put(messageName, messageObj);
-                }
+                Optional.ofNullable(messageObj)
+                        .map(message1 -> messages.put(messageName, message1))
+                        .map(Message::get$ref)
+                        .ifPresent($ref -> result.registerReference($ref, referenceable -> messages.put(messageName, (Message) referenceable)));
             }
         }
 
@@ -1502,12 +1526,20 @@ public class AsyncAPIDeserializer {
         if (payloadObject != null) {
 
             // TODO !!!!!!!!!!!!!!! attention payload formate en schema pour le moment !!!!!!!!!!!!!!!
-            message.setPayload(getSchema(payloadObject, String.format("%s.%s", location, "payload"), result));
+            Schema payload = getSchema(payloadObject, String.format("%s.%s", location, "payload"), result);
+            message.setPayload(payload);
+            Optional.ofNullable(payload.get$ref())
+                    .ifPresent($ref -> {
+                        result.registerReference($ref, referenceable -> message.setPayload((Schema) referenceable));
+                    });
         }
 
         final ObjectNode correlationIdObject = getObject("correlationId", node, false, String.format("%s.%s", location, "correlationId"), result);
         if (correlationIdObject != null) {
-            message.setCorrelationId(getCorrelationId(correlationIdObject, String.format("%s.%s", location, "correlationId"), result));
+            CorrelationID correlationIdObj = getCorrelationId(correlationIdObject, String.format("%s.%s", location, "correlationId"), result);
+            message.setCorrelationId(correlationIdObj);
+            Optional.ofNullable(correlationIdObj.get$ref())
+                    .ifPresent($ref -> result.registerReference($ref, referenceable -> message.setCorrelationId((CorrelationID) referenceable)));
         }
 
         final ArrayNode array = getArray("tags", node, false, location, result);
@@ -1549,6 +1581,8 @@ public class AsyncAPIDeserializer {
             }
         }
 
+        result.registerReferenceeable(location, message);
+
         return message;
     }
 
@@ -1573,9 +1607,10 @@ public class AsyncAPIDeserializer {
             } else {
                 final ObjectNode messageTrait = (ObjectNode) messageTraitValue;
                 final MessageTrait messageTraitObj = getMessageTrait(messageTrait, String.format("%s.%s", location, messageTraitName), result);
-                if (messageTraitObj != null) {
-                    messageTraits.put(messageTraitName, messageTraitObj);
-                }
+                Optional.ofNullable(messageTraitObj)
+                        .map(messageTrait1 -> messageTraits.put(messageTraitName, messageTrait1))
+                        .map(MessageTrait::get$ref)
+                        .ifPresent($ref -> result.registerReference($ref, referenceable -> messageTraits.put(messageTraitName, (MessageTrait) referenceable)));
             }
         }
 
@@ -1642,7 +1677,10 @@ public class AsyncAPIDeserializer {
 
         final ObjectNode correlationIdObject = getObject("correlationId", node, false, location, result);
         if (correlationIdObject != null) {
-            messageTrait.setCorrelationId(getCorrelationId(correlationIdObject, location, result));
+            CorrelationID correlationIdObj = getCorrelationId(correlationIdObject, location, result);
+            messageTrait.setCorrelationId(correlationIdObj);
+            Optional.ofNullable(correlationIdObj.get$ref())
+                    .ifPresent($ref -> result.registerReference($ref, referenceable -> messageTrait.setCorrelationId((CorrelationID) referenceable)));
         }
 
         final ArrayNode array = getArray("tags", node, false, location, result);
@@ -1678,6 +1716,8 @@ public class AsyncAPIDeserializer {
                 result.extra(location, key, node.get(key));
             }
         }
+
+        result.registerReferenceeable(location, messageTrait);
 
         return messageTrait;
     }
@@ -1862,9 +1902,10 @@ public class AsyncAPIDeserializer {
             }
             if (entry.getValue().getNodeType().equals(JsonNodeType.OBJECT)) {
                 final CorrelationID correlationIdObj = getCorrelationId((ObjectNode) entry.getValue(), String.format("%s.%s", location, entry.getKey()), result);
-                if (correlationIdObj != null) {
-                    correlationIds.put(entry.getKey(), correlationIdObj);
-                }
+                Optional.ofNullable(correlationIdObj)
+                        .map(correlationId1 -> correlationIds.put(entry.getKey(), correlationId1))
+                        .map(CorrelationID::get$ref)
+                        .ifPresent($ref -> result.registerReference($ref, referenceable -> correlationIds.put(entry.getKey(), (CorrelationID) referenceable)));
             }
         }
         return correlationIds;
@@ -1916,6 +1957,8 @@ public class AsyncAPIDeserializer {
                 result.extra(location, key, node.get(key));
             }
         }
+
+        result.registerReferenceeable(location, correlationID);
 
         return correlationID;
     }
@@ -2090,6 +2133,10 @@ public class AsyncAPIDeserializer {
                     if (n.isObject()) {
                         schema = getSchema((ObjectNode) n, location, result);
                         composedSchema.addAllOfItem(schema);
+                        Optional.ofNullable(schema.get$ref())
+                                .ifPresent($ref -> result.registerReference($ref, referenceable ->
+                                        composedSchema.getAllOf().replaceAll(schema1 -> $ref.equals(schema1.get$ref()) ? (Schema) referenceable : schema1)
+                                ));
                     }
                 }
                 schema = composedSchema;
@@ -2100,6 +2147,10 @@ public class AsyncAPIDeserializer {
                     if (n.isObject()) {
                         schema = getSchema((ObjectNode) n, location, result);
                         composedSchema.addAnyOfItem(schema);
+                        Optional.ofNullable(schema.get$ref())
+                                .ifPresent($ref -> result.registerReference($ref, referenceable ->
+                                        composedSchema.getAnyOf().replaceAll(schema1 -> $ref.equals(schema1.get$ref()) ? (Schema) referenceable : schema1)
+                                ));
                     }
                 }
                 schema = composedSchema;
@@ -2110,6 +2161,10 @@ public class AsyncAPIDeserializer {
                     if (n.isObject()) {
                         schema = getSchema((ObjectNode) n, location, result);
                         composedSchema.addOneOfItem(schema);
+                        Optional.ofNullable(schema.get$ref())
+                                .ifPresent($ref -> result.registerReference($ref, referenceable ->
+                                        composedSchema.getOneOf().replaceAll(schema1 -> $ref.equals(schema1.get$ref()) ? (Schema) referenceable : schema1)
+                                ));
                     }
                 }
                 schema = composedSchema;
@@ -2118,14 +2173,13 @@ public class AsyncAPIDeserializer {
 
         if (itemsNode != null) {
             final ArraySchema items = new ArraySchema();
-            if (itemsNode.getNodeType().equals(JsonNodeType.OBJECT)) {
-                items.setItems(getSchema(itemsNode, location, result));
-            } else if (itemsNode.getNodeType().equals(JsonNodeType.ARRAY)) {
-                for (final JsonNode n : itemsNode) {
-                    if (n.isValueNode()) {
-                        items.setItems(getSchema(itemsNode, location, result));
-                    }
-                }
+            if(itemsNode.getNodeType().equals(JsonNodeType.OBJECT)
+                    || (itemsNode.getNodeType().equals(JsonNodeType.ARRAY)
+                            && StreamSupport.stream(itemsNode.spliterator(), false).anyMatch(JsonNode::isValueNode))) {
+                Schema itemSchema = getSchema(itemsNode, location, result);
+                items.setItems(itemSchema);
+                Optional.ofNullable(itemSchema.get$ref())
+                        .ifPresent($ref -> result.registerReference($ref, referenceable -> items.setItems((ArraySchema) referenceable)));
             }
             schema = items;
         }
@@ -2158,6 +2212,7 @@ public class AsyncAPIDeserializer {
                 } else {
                     schema.set$ref(ref.asText());
                 }
+                result.registerReferenceeable(location, schema);
                 return schema;
             } else {
                 result.invalidType(location, "$ref", "string", node);
@@ -2427,6 +2482,8 @@ public class AsyncAPIDeserializer {
             }
         }
 
+        result.registerReferenceeable(location, schema);
+
         return schema;
 
     }
@@ -2572,13 +2629,21 @@ public class AsyncAPIDeserializer {
                     if (n.isObject()) {
                         itObj = n.deepCopy();
                         // itObj= (ObjectNode) mapper.readTree(n.asText());
-                        operation.setMessage(getMessage(itObj, String.format("%s.%s", location, "message"), result));
+                        final Message messageObj = getMessage(itObj, String.format("%s.%s", location, "message"), result);
+                        Optional.ofNullable(messageObj)
+                                .map(Message::get$ref)
+                                .ifPresent($ref -> result.registerReference($ref, referenceable -> operation.setMessage((Message) referenceable)));
+                        operation.setMessage(messageObj);
                     }
                 }
             }
 
             else {
-                operation.setMessage(getMessage(requestObjectNode, String.format("%s.%s", location, "message"), result));
+                final Message messageObj = getMessage(requestObjectNode, String.format("%s.%s", location, "message"), result);
+                Optional.ofNullable(messageObj)
+                        .map(Message::get$ref)
+                        .ifPresent($ref -> result.registerReference($ref, referenceable -> operation.setMessage((Message) referenceable)));
+                operation.setMessage(messageObj);
             }
         }
 
@@ -2617,9 +2682,10 @@ public class AsyncAPIDeserializer {
             } else {
                 final ObjectNode operationTraitNode = (ObjectNode) operationTraitValue;
                 final OperationTrait operationTraitObj = getOperationTrait(operationTraitNode, String.format("%s.%s", location, operationTraitName), result);
-                if (operationTraitObj != null) {
-                    operationTraits.put(operationTraitName, operationTraitObj);
-                }
+                Optional.ofNullable(operationTraitObj)
+                        .map(operationTrait -> operationTraits.put(operationTraitName, operationTrait))
+                        .map(OperationTrait::get$ref)
+                        .ifPresent($ref -> result.registerReference($ref, referenceable -> operationTraits.put(operationTraitName, (OperationTrait) referenceable)));
             }
         }
 
@@ -2695,6 +2761,8 @@ public class AsyncAPIDeserializer {
                 result.extra(location, key, obj.get(key));
             }
         }
+
+        result.registerReferenceeable(location, operationTrait);
 
         return operationTrait;
     }
@@ -2862,6 +2930,10 @@ public class AsyncAPIDeserializer {
             if (node.getNodeType().equals(JsonNodeType.OBJECT)) {
                 final OperationTrait trait = getOperationTrait((ObjectNode) node, String.format("%s.%s", location, "operationTrait"), result);
                 operationTraits.add(trait);
+                Optional.ofNullable(trait.get$ref())
+                        .ifPresent($ref -> result.registerReference($ref, referenceable ->
+                                operationTraits.replaceAll(operationTrait -> $ref.equals(operationTrait.get$ref()) ? (OperationTrait) referenceable : operationTrait)
+                        ));
             }
         }
 
@@ -2943,6 +3015,10 @@ public class AsyncAPIDeserializer {
 
         private final Map<Location, String> invalidType = new LinkedHashMap<>();
 
+        private final Map<Location, Referenceable> referenceables = new LinkedHashMap<>();
+
+        private final Map<String, Consumer<Referenceable>> referenceSetters = new LinkedHashMap<>();
+
         private final List<Location> missing = new ArrayList<>();
 
         private final List<Location> warnings = new ArrayList<>();
@@ -2981,6 +3057,15 @@ public class AsyncAPIDeserializer {
 
         public void invalidType(final String location, final String key, final String expectedType, final JsonNode value) {
             this.invalidType.put(new Location(location, key), expectedType);
+        }
+
+        public void registerReferenceeable(final String location, final Referenceable value) {
+            this.referenceables.put(new Location(location, null), value);
+        }
+
+        public void registerReference(final String $ref, final Consumer<Referenceable> setter) {
+            this.referenceSetters.compute($ref,
+                    (_s, referenceableConsumer) -> (referenceableConsumer == null) ? setter : referenceableConsumer.andThen(setter));
         }
 
         public void invalid() {
@@ -3066,6 +3151,15 @@ public class AsyncAPIDeserializer {
         public Location(final String location, final String key) {
             this.location = location;
             this.key = key;
+        }
+
+        public String toReference() {
+            StringBuilder sb = new StringBuilder("#/")
+                    .append(location.replace('.', '/'));
+            if(key != null) {
+                sb.append("/").append(key);
+            }
+            return sb.toString();
         }
     }
 
