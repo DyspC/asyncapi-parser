@@ -16,8 +16,6 @@ public class ParseOptions {
 
     private boolean skipMatches;
 
-    private boolean dereference = false;
-
     public boolean isResolve() {
         return this.resolve;
     }
@@ -74,11 +72,4 @@ public class ParseOptions {
         this.camelCaseFlattenNaming = camelCaseFlattenNaming;
     }
 
-    public boolean isDereference() {
-        return dereference;
-    }
-
-    public void setDereference(boolean dereference) {
-        this.dereference = dereference;
-    }
 }
