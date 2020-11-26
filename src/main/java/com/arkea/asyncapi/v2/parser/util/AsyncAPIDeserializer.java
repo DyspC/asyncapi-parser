@@ -1529,9 +1529,7 @@ public class AsyncAPIDeserializer {
             Schema payload = getSchema(payloadObject, String.format("%s.%s", location, "payload"), result);
             message.setPayload(payload);
             Optional.ofNullable(payload.get$ref())
-                    .ifPresent($ref -> {
-                        result.registerReference($ref, referenceable -> message.setPayload((Schema) referenceable));
-                    });
+                    .ifPresent($ref -> result.registerReference($ref, referenceable -> message.setPayload((Schema) referenceable)));
         }
 
         final ObjectNode correlationIdObject = getObject("correlationId", node, false, String.format("%s.%s", location, "correlationId"), result);
