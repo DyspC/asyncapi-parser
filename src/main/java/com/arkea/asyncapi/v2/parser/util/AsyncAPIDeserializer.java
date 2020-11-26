@@ -2372,9 +2372,10 @@ public class AsyncAPIDeserializer {
             } else {
                 if (propertiesObj != null) {
                     property = getSchema((ObjectNode) propertyValue, location, result);
-                    if (property != null) {
-                        properties.put(name, property);
-                    }
+                    Optional.ofNullable(property)
+                            .map(x1 -> properties.compute(name, (s, schema1) -> x1))
+                            .map(Schema::get$ref)
+                            .ifPresent($ref -> result.registerReference($ref, referenceable -> properties.put(name, (Schema) referenceable)));
                 }
             }
         }
