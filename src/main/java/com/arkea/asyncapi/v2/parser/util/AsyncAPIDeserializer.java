@@ -18,6 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -708,7 +709,7 @@ public class AsyncAPIDeserializer {
             if (entry.getValue().getNodeType().equals(JsonNodeType.OBJECT)) {
                 final Channel channelObj = getChannel((ObjectNode) entry.getValue(), String.format("%s.%s", location, entry.getKey()), result);
                 Optional.ofNullable(channelObj)
-                        .map(channel -> channels.put(entry.getKey(), channel))
+                        .map(channel -> channels.compute(entry.getKey(), (_key, _value) -> channel))
                         .map(Channel::get$ref)
                         .ifPresent($ref -> result.registerReference($ref, referenceable -> channels.put(entry.getKey(), (Channel) referenceable)));
             }
@@ -1142,7 +1143,7 @@ public class AsyncAPIDeserializer {
                 if (parameterObj != null) {
                     parameter = getParameter(parameterObj, String.format("%s.%s", location, parameterName), result);
                     Optional.ofNullable(parameter)
-                            .map(parameter1 -> parameters.put(parameterName, parameter1))
+                            .map(parameter1 -> parameters.compute(parameterName, (_key, _value) -> parameter1))
                             .map(Parameter::get$ref)
                             .ifPresent($ref -> result.registerReference($ref, referenceable -> parameters.put(parameterName, (Parameter) referenceable)));
                         // if(PATH_PARAMETER.equalsIgnoreCase(parameter.getIn()) && Boolean.FALSE.equals(parameter.getRequired())){
@@ -1324,7 +1325,7 @@ public class AsyncAPIDeserializer {
                 final ObjectNode securityScheme = (ObjectNode) securitySchemeValue;
                 final SecurityScheme securitySchemeObj = getSecurityScheme(securityScheme, String.format("%s.%s", location, securitySchemeName), result);
                 Optional.ofNullable(securitySchemeObj)
-                        .map(x1 -> securitySchemes.put(securitySchemeName, x1))
+                        .map(x1 -> securitySchemes.compute(securitySchemeName, (_key, _value) -> x1))
                         .map(SecurityScheme::get$ref)
                         .ifPresent($ref -> result.registerReference($ref, referenceable -> securitySchemes.put(securitySchemeName, (SecurityScheme) referenceable)));
             }
@@ -1455,7 +1456,7 @@ public class AsyncAPIDeserializer {
                 final ObjectNode message = (ObjectNode) messageValue;
                 final Message messageObj = getMessage(message, String.format("%s.%s", location, messageName), result);
                 Optional.ofNullable(messageObj)
-                        .map(message1 -> messages.put(messageName, message1))
+                        .map(message1 -> messages.compute(messageName, (_key, _value) -> message1))
                         .map(Message::get$ref)
                         .ifPresent($ref -> result.registerReference($ref, referenceable -> messages.put(messageName, (Message) referenceable)));
             }
@@ -1606,7 +1607,7 @@ public class AsyncAPIDeserializer {
                 final ObjectNode messageTrait = (ObjectNode) messageTraitValue;
                 final MessageTrait messageTraitObj = getMessageTrait(messageTrait, String.format("%s.%s", location, messageTraitName), result);
                 Optional.ofNullable(messageTraitObj)
-                        .map(messageTrait1 -> messageTraits.put(messageTraitName, messageTrait1))
+                        .map(messageTrait1 -> messageTraits.compute(messageTraitName, (_key, _value) -> messageTrait1))
                         .map(MessageTrait::get$ref)
                         .ifPresent($ref -> result.registerReference($ref, referenceable -> messageTraits.put(messageTraitName, (MessageTrait) referenceable)));
             }
@@ -1901,7 +1902,7 @@ public class AsyncAPIDeserializer {
             if (entry.getValue().getNodeType().equals(JsonNodeType.OBJECT)) {
                 final CorrelationID correlationIdObj = getCorrelationId((ObjectNode) entry.getValue(), String.format("%s.%s", location, entry.getKey()), result);
                 Optional.ofNullable(correlationIdObj)
-                        .map(correlationId1 -> correlationIds.put(entry.getKey(), correlationId1))
+                        .map(correlationId1 -> correlationIds.compute(entry.getKey(), (_key, _value) -> correlationId1))
                         .map(CorrelationID::get$ref)
                         .ifPresent($ref -> result.registerReference($ref, referenceable -> correlationIds.put(entry.getKey(), (CorrelationID) referenceable)));
             }
@@ -2681,7 +2682,7 @@ public class AsyncAPIDeserializer {
                 final ObjectNode operationTraitNode = (ObjectNode) operationTraitValue;
                 final OperationTrait operationTraitObj = getOperationTrait(operationTraitNode, String.format("%s.%s", location, operationTraitName), result);
                 Optional.ofNullable(operationTraitObj)
-                        .map(operationTrait -> operationTraits.put(operationTraitName, operationTrait))
+                        .map(operationTrait -> operationTraits.compute(operationTraitName, (_key, _value) -> operationTrait))
                         .map(OperationTrait::get$ref)
                         .ifPresent($ref -> result.registerReference($ref, referenceable -> operationTraits.put(operationTraitName, (OperationTrait) referenceable)));
             }
